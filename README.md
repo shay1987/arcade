@@ -43,7 +43,6 @@ The following arcade games are included in this repository:
 3. Snake
 4. Greed
 5. Pacman
-6. Backgammon
 
 More games will be available in future releases.
 
