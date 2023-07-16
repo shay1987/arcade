@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: login
+  labels:
+    app: login
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: login
+  template:
+    metadata:
+      labels:
+        app: login
+    spec:
+      containers:
+        - name: login
+          image: shay1987/login:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+          - name: FLASK_APP
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: FLASK_APP
+          - name: MYSQL_ROOT_USER
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: MYSQL_ROOT_USER
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: MYSQL_ROOT_PASSWORD
+          - name: MYSQL_ROOT_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: MYSQL_ROOT_HOST
+          - name: MYSQL_ROOT_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: MYSQL_ROOT_PORT
+          - name: MYSQL_ROOT_DB
+            valueFrom:
+              configMapKeyRef:
+                name: app-config
+                key: MYSQL_ROOT_DB
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: login-svc
+spec:
+  type: NodePort
+  selector:
+    app: login
+  ports:
+    - protocol: TCP
+      nodePort: 30036
+      port: 5000
+      targetPort: 5000

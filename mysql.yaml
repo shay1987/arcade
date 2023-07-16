@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  labels:
+    name: lbl-k8s-mysql
+spec:
+  ports:
+  - port: 3306
+  selector:
+    name: lbl-k8s-mysql
+  type: ClusterIP
+
+---
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: k8s-mysql
+  labels:
+    name: lbl-k8s-mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:latest
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mysql-pass
+          key: password
+    ports:
+    - name: mysql
+      containerPort: 3306
+      protocol: TCP
+    volumeMounts:
+    - name: k8s-mysql-storage
+      mountPath: /var/lib/mysql
+    - name: mysql-initdb
+      mountPath: /docker-entrypoint-initdb.d
+  volumes:
+  - name: k8s-mysql-storage
+    emptyDir: {}
+  - name: mysql-initdb
+    configMap:
+      name: app-config
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+# To create database with tables and raws:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS mydb;
+    USE mydb;
+    CREATE TABLE accounts (username VARCHAR(10), password VARCHAR(10), email VARCHAR(40));
+  FLASK_APP: run.py
+  MYSQL_ROOT_USER: root
+  MYSQL_ROOT_PASSWORD: admin
+  MYSQL_ROOT_HOST: "mysql-service.default.svc.cluster.local"
+  MYSQL_ROOT_PORT: "3306"
+  MYSQL_ROOT_DB: mydb
+  FLASK_APP_PORT: "5000"

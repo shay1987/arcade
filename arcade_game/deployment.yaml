@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: arcade-app
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: arcade
+  template:
+    metadata:
+      labels:
+        app: arcade
+    spec:
+      containers:
+        - name: arcade
+          image: shay1987/arcade:latest
+          imagePullPolicy: Always
