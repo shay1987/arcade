@@ -86,7 +86,7 @@ def register():
 
 @app.route('/home')
 def home():
-    haproxy_url = 'http://192.168.49.2:31612'
+    haproxy_url = 'http://haproxy-service.defualt.svc.cluster.local'
     return redirect(haproxy_url)
                   
 if __name__ == "__main__":
