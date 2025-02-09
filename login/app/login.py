@@ -86,8 +86,7 @@ def register():
 
 @app.route('/home')
 def home():
-    haproxy_url = 'http://192.168.49.2:31612'
-    return redirect(haproxy_url)
+    return redirect('http://arcade-service.default.svc.cluster.local:5000')
                   
 if __name__ == "__main__":
     app.debug = True
