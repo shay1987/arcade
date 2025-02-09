@@ -1,65 +1,99 @@
+# Secret for MySQL password (Base64-encoded "admin")
 apiVersion: v1
-kind: Service
+kind: Secret
 metadata:
-  name: mysql-service
-  labels:
-    name: lbl-k8s-mysql
-spec:
-  ports:
-  - port: 3306
-  selector:
-    name: lbl-k8s-mysql
-  type: ClusterIP
+  name: mysql-pass
+type: Opaque
+data:
+  password: YWRtaW4=  # "admin" in base64
 
 ---
-
+# Persistent Volume Claim for MySQL data storage
 apiVersion: v1
-kind: Pod
+kind: PersistentVolumeClaim
 metadata:
-  name: k8s-mysql
-  labels:
-    name: lbl-k8s-mysql
+  name: mysql-pvc
 spec:
-  containers:
-  - name: mysql
-    image: mysql:latest
-    env:
-    - name: MYSQL_ROOT_PASSWORD
-      valueFrom:
-        secretKeyRef:
-          name: mysql-pass
-          key: password
-    ports:
-    - name: mysql
-      containerPort: 3306
-      protocol: TCP
-    volumeMounts:
-    - name: k8s-mysql-storage
-      mountPath: /var/lib/mysql
-    - name: mysql-initdb
-      mountPath: /docker-entrypoint-initdb.d
-  volumes:
-  - name: k8s-mysql-storage
-    emptyDir: {}
-  - name: mysql-initdb
-    configMap:
-      name: app-config
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
 
 ---
+# ConfigMap for environment variables and initialization script
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
 data:
-# To create database with tables and raws:
   init.sql: |
     CREATE DATABASE IF NOT EXISTS mydb;
     USE mydb;
-    CREATE TABLE accounts (username VARCHAR(10), password VARCHAR(10), email VARCHAR(40));
-  FLASK_APP: run.py
+    CREATE TABLE accounts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL
+    );
   MYSQL_ROOT_USER: root
-  MYSQL_ROOT_PASSWORD: admin
   MYSQL_ROOT_HOST: "mysql-service.default.svc.cluster.local"
   MYSQL_ROOT_PORT: "3306"
   MYSQL_ROOT_DB: mydb
   FLASK_APP_PORT: "5000"
+
+---
+# MySQL Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:latest
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-pass
+              key: password
+        - name: MYSQL_DATABASE
+          value: "mydb"
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+        - name: mysql-initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+      - name: mysql-initdb
+        configMap:
+          name: app-config
+
+---
+# MySQL Service (Internal communication)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector:
+    app: mysql  # Matches the Deployment label
+  ports:
+  - port: 3306
+    targetPort: 3306
+  type: ClusterIP  # Internal only
