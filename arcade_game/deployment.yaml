@@ -16,3 +16,16 @@ spec:
         - name: arcade
           image: shay1987/arcade:latest
           imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: arcade-service
+spec:
+  selector:
+    app: arcade
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+  type: ClusterIP
