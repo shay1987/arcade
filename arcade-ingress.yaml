@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: arcade-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    # --- ADD THIS LINE FOR WEBSOCKETS ---
+    nginx.ingress.kubernetes.io/websocket-services: "arcade-service"
+spec:
+  ingressClassName: nginx # <--- IMPORTANT: Ensure this matches your Ingress Controller (e.g., nginx, public-nginx, etc.)
+  rules:
+  - host: arcade.yourcluster.com # Optional: If you use a custom domain, replace with your domain.
+                                # If you omit this, it will respond to the Ingress Controller's default IP/hostname.
+    http:
+      paths:
+      - path: /arcade(/|$)(.*) # This path will capture everything after /arcade
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: arcade-service # Name of your arcade service
+            port:
+              number: 5000       # Port your arcade service is listening on
+  - http: # This block is for IP-based access (like http://<Ingress_IP>/arcade)
+      paths:
+      - path: /arcade(/|$)(.*) # This path will capture everything after /arcade
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: arcade-service
+            port:
+              number: 5000

@@ -2,11 +2,14 @@
 
 ![Arcade Logo](logo.png)
 
-Arcade is a repository that contains a collection of classic TUI arcade games implemented using bash script and ttyd. These games are recreated to provide a nostalgic gaming experience for users. Whether you're a seasoned gamer or just looking for some fun, Arcade has something for everyone.
+Arcade is a repository that contains a collection of classic TUI arcade games implemented using bash script and ttyd.  
+These games are recreated to provide a nostalgic gaming experience for users, whether you're a seasoned gamer or just looking for some fun, `Arcade` has something for everyone.
 
 ## Project Overview
 
-Arcade is not only a collection of classic arcade games but also serves as a Continuous Integration and Continuous Deployment (CI/CD) project. It incorporates various technologies and tools to demonstrate a complete CI/CD pipeline. The project utilizes the following components:
+Arcade is not only a collection of classic arcade games but also serves as a Continuous Integration and Continuous Deployment (CI/CD) project.  
+It incorporates various technologies and tools to demonstrate a complete CI/CD pipeline.  
+The project utilizes the following components:
 
 ### Docker
 
@@ -19,20 +22,6 @@ Minikube, a tool for running Kubernetes locally, is employed in this project to 
 ### Python Login App with MySQL
 
 Arcade repository includes a Python login app that connects to a MySQL database. This showcases the integration between Python and a database system, allowing users to register and log in to the games app.
-
-### HAProxy Load Balancer
-
-To demonstrate load balancing capabilities, the project incorporates HAProxy as a load balancer. It distributes incoming requests across multiple game pods, ensuring efficient resource utilization and improved performance.
-
-### Continuous Integration with GitHub Actions
-
-The project embraces Continuous Integration practices by leveraging GitHub Actions. With GitHub Actions, automated workflows are set up to build, and Push the Docker image every time changes are pushed to the repository. This ensures that each commit is verified and helps maintain code quality.
-
-### Continuous Deployment with Argo CD
-
-For Continuous Deployment, the project integrates Argo CD, a GitOps-based continuous delivery tool. Argo CD automates the deployment of the games by syncing the desired state defined in a Git repository with the target Kubernetes cluster, ensuring consistent and reliable deployments.
-
-By incorporating these technologies and tools, the Arcade project showcases a complete CI/CD pipeline, enabling developers to efficiently develop, test, and deploy the games in a controlled and automated manner. It demonstrates best practices for modern software development and deployment workflows.
 
 ## Games Included
 
@@ -50,12 +39,78 @@ More games will be available in future releases.
 
 Follow these steps to run the app locally:
 
-1. Open a terminal or command prompt and run the following command:
-   ```
-   docker run -p 7681:7681 shay1987/arcade
-   ```
-2. Open your browser and enter 'localhost:7681'  
-3. Enjoy playing the games!
+1.  Open a terminal or command prompt and run the following command:
+    ```
+    docker run -p 7681:7681 shay1987/arcade
+    ```
+2.  Open your browser and enter 'localhost:7681'
+3.  Enjoy playing the games!
+
+## How to Deploy to Kubernetes Cluster (Minikube)
+
+To deploy this application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster, follow these steps.  
+Ensure you have `kubectl` configured to interact with your cluster.
+
+1.  **Enable Ingress Controller (if using Minikube or a similar local setup):**
+    If you're deploying on Minikube, ensure the Ingress addon is enabled:
+    ```bash
+    minikube addons enable ingress
+    ```
+
+2.  **Deploy MySQL Database:**
+    This file defines the MySQL Secret, Persistent Volume Claim, ConfigMap, Deployment, and Service.
+    ```bash
+    kubectl apply -f mysql.yaml
+    ```
+    *It's good practice to wait for the MySQL pod to be `Running` and `Ready` before proceeding:*
+    ```bash
+    kubectl get pods -l app=mysql
+    ```
+
+3.  **Deploy Login Application:**
+    This deploys the Flask Login application's Deployment and Service.
+    ```bash
+    kubectl apply -f login.yaml
+    ```
+    *Wait for the Login pod to be `Running` and `Ready`.*
+    ```bash
+    kubectl get pods -l app=login
+    ```
+
+4.  **Deploy Login Static Files Ingress:**
+    This Ingress routes requests for static assets (`/static/`) to your login application.
+    ```bash
+    kubectl apply -f login-static-ingress.yaml
+    ```
+
+5.  **Deploy Arcade Game:**
+    This deploys the Arcade game application's Deployment and Service.
+    ```bash
+    kubectl apply -f arcade_game/deployment.yaml
+    ```
+    *Wait for the Arcade pod to be `Running` and `Ready`.*
+    ```bash
+    kubectl get pods -l app=arcade
+    ```
+
+6.  **Deploy Arcade Game Ingress:**
+    This Ingress exposes the Arcade game externally, including WebSocket support.
+    ```bash
+    kubectl apply -f arcade-ingress.yaml
+    ```
+
+7.  **Access the Applications:**
+    After all resources are deployed and running, you can access your applications via the Ingress controller's external IP or hostname.
+
+    * **Find Ingress IP/Hostname:**
+        If on Minikube, get the Ingress IP:
+        ```bash
+        minikube ip
+        ```
+        If on a cloud provider, check your Ingress controller's external IP or hostname (e.g., using `kubectl get ingress -A -o wide`).
+
+    * **Access Login:** Open your browser to `http://<YOUR_INGRESS_IP_OR_HOSTNAME>/` (or `http://yourdomain.com/` if you configured a hostname in Ingress).
+    * **Access Arcade:** After a successful login through the Login app, you will be redirected to the Arcade game, which will be accessible at `http://<YOUR_INGRESS_IP_OR_HOSTNAME>/arcade` (or `http://yourdomain.com/arcade`).
 
 ## Contributing
 

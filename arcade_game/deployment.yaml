@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: arcade-app
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: arcade
@@ -16,16 +16,18 @@ spec:
         - name: arcade
           image: shay1987/arcade:latest
           imagePullPolicy: Always
+          ports:
+            - containerPort: 7681 # Explicitly declare container port for clarity
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: arcade-service
+  name: arcade-service # This is the service name referenced in login.py
 spec:
   selector:
     app: arcade
   ports:
     - protocol: TCP
-      port: 5000
-      targetPort: 5000
+      port: 5000       # Service listens on 5000 (as login.py expects)
+      targetPort: 7681 # <--- CORRECTED: Target the actual container port
   type: ClusterIP

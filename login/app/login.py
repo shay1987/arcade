@@ -1,14 +1,11 @@
-from flask import Flask, render_template, session, request, redirect, jsonify 
-from flask_mysqldb import MySQL
-import MySQLdb.cursors
-import mysql.connector
+from flask import Flask, render_template, session, request, redirect, jsonify
+from flask_sqlalchemy import SQLAlchemy
 import re, os
-from peewee import MySQLDatabase, IntegerField
 
 app = Flask(__name__)
-mysql = MySQL(app)
 app.secret_key = 'thisIsSecret'
 
+# Environment variables for database connection
 MYSQL_ROOT_USER = os.getenv('MYSQL_ROOT_USER', 'root')
 MYSQL_ROOT_PASSWORD = os.getenv('MYSQL_ROOT_PASSWORD', 'admin')
 MYSQL_ROOT_HOST = os.getenv('MYSQL_ROOT_HOST', 'mysql-service.default.svc.cluster.local')
@@ -16,78 +13,91 @@ MYSQL_ROOT_PORT = os.getenv('MYSQL_ROOT_PORT', '3306')
 MYSQL_ROOT_DB = os.getenv('MYSQL_ROOT_DB', 'mydb')
 FLASK_APP_PORT = os.getenv('FLASK_APP_PORT', '5000')
 
-app.config['MYSQL_HOST'] = MYSQL_ROOT_HOST
-app.config['MYSQL_PORT'] = int(MYSQL_ROOT_PORT)
-app.config['MYSQL_USER'] = MYSQL_ROOT_USER
-app.config['MYSQL_PASSWORD'] = MYSQL_ROOT_PASSWORD
-app.config['MYSQL_DB'] = MYSQL_ROOT_DB
+# Configure SQLAlchemy for MySQL with PyMySQL driver
+# Format: mysql+pymysql://user:password@host:port/database_name
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{MYSQL_ROOT_USER}:{MYSQL_ROOT_PASSWORD}@{MYSQL_ROOT_HOST}:{MYSQL_ROOT_PORT}/{MYSQL_ROOT_DB}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False # Recommended to disable to save memory
+
+db = SQLAlchemy(app) # Initialize SQLAlchemy
+
+# Define your database model (for the 'accounts' table)
+class Account(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(255), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+
+    def __repr__(self):
+        return f'<Account {self.username}>'
+
+# --- Ensure database tables are created on app startup ---
+with app.app_context():
+    db.create_all()
 
 @app.route('/', methods=['GET', 'POST'])
 def login():
-    # Output message if something goes wrong...
     msg = 'Welcome!'
-    # Check if "username" and "password" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
-        # Create variables for easy access
         username = request.form['username']
         password = request.form['password']
-        # Check if account exists using MySQL
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM accounts WHERE username = %s AND password = %s', (username, password,))
-        # Fetch one record and return result
-        account = cursor.fetchone()
-        # If account exists in accounts table in out database
-        if account:
-            # Create session data, we can access this data in other routes
-            session['loggedin'] = True
-            # session['id'] = account['id']
-            session['username'] = account['username']
-            # Redirect to home page
-            return redirect('/home')
-        else:
-            # Account doesnt exist or username/password incorrect
-            msg = 'Incorrect username/password!'
-    # Show the login form with message (if any)
+
+        try:
+            account = Account.query.filter_by(username=username, password=password).first()
+
+            if account:
+                session['loggedin'] = True
+                session['id'] = account.id
+                session['username'] = account.username
+                return redirect('/home')
+            else:
+                msg = 'Incorrect username/password!'
+        except Exception as e:
+            print(f"Database query error in login: {e}")
+            msg = f"A database error occurred during login: {e}. Please check server logs."
+
     return render_template('index.html', msg=msg)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
-    # Output message if something goes wrong...
     msg = 'Welcome'
-    # Check if "username", "password" and "email" POST requests exist (user submitted form)
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form and 'email' in request.form:
-        # Create variables for easy access
         username = request.form['username']
         password = request.form['password']
         email = request.form['email']
-		        # Check if account exists using MySQL
-        cursor = mysql.connection.cursor(MySQLdb.cursors.DictCursor)
-        cursor.execute('SELECT * FROM accounts WHERE username = %s', (username,))
-        account = cursor.fetchone()
-        # If account exists show error and validation checks
-        if account:
-            msg = 'Account already exists!'
-        elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
-            msg = 'Invalid email address!'
-        elif not re.match(r'[A-Za-z0-9]+', username):
-            msg = 'Username must contain only characters and numbers!'
-        elif not username or not password or not email:
-            msg = 'Please fill out the form!'
-        else:
-            # Account doesnt exists and the form data is valid, now insert new account into accounts table
-            cursor.execute('INSERT INTO accounts VALUES (%s, %s, %s)', (username, password, email,))
-            mysql.connection.commit()
-            msg = 'You have successfully registered!'
+
+        try:
+            existing_account_user = Account.query.filter_by(username=username).first()
+            existing_account_email = Account.query.filter_by(email=email).first()
+
+            if existing_account_user:
+                msg = 'Account already exists!'
+            elif existing_account_email:
+                msg = 'Email already registered!'
+            elif not re.match(r'[^@]+@[^@]+\.[^@]+', email):
+                msg = 'Invalid email address!'
+            elif not re.match(r'[A-Za-z0-9]+', username):
+                msg = 'Username must contain only characters and numbers!'
+            elif not username or not password or not email:
+                msg = 'Please fill out the form!'
+            else:
+                new_account = Account(username=username, password=password, email=email)
+                db.session.add(new_account)
+                db.session.commit()
+                msg = 'You have successfully registered!'
+        except Exception as e:
+            print(f"Database query error in register: {e}")
+            msg = f"A database error occurred during registration: {e}. Please check server logs."
+
     elif request.method == 'POST':
-        # Form is empty... (no POST data)
         msg = 'Please fill out the form!'
-    # Show registration form with message (if any)
     return render_template('register.html', msg=msg)
 
 @app.route('/home')
 def home():
-    return redirect('http://arcade-service.default.svc.cluster.local:5000')
-                  
+    # Corrected for universal cluster access
+    # This redirects to the '/arcade' path on the *same external hostname/IP* the user accessed the login app from.
+    return redirect('/arcade')
+
 if __name__ == "__main__":
     app.debug = True
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=int(FLASK_APP_PORT))

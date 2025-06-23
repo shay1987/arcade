@@ -17,7 +17,7 @@ spec:
       containers:
         - name: login
           image: shay1987/login:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always # Ensure this is 'Always' as previously discussed
           ports:
             - containerPort: 5000
           env:
@@ -31,11 +31,13 @@ spec:
               configMapKeyRef:
                 name: app-config
                 key: MYSQL_ROOT_USER
+          # --- CRITICAL FIX HERE ---
+          # Source MYSQL_ROOT_PASSWORD from the Secret 'mysql-pass'
           - name: MYSQL_ROOT_PASSWORD
             valueFrom:
-              configMapKeyRef:
-                name: app-config
-                key: MYSQL_ROOT_PASSWORD
+              secretKeyRef:
+                name: mysql-pass
+                key: password # 'password' is the key within your mysql-pass Secret
           - name: MYSQL_ROOT_HOST
             valueFrom:
               configMapKeyRef:
@@ -59,11 +61,10 @@ kind: Service
 metadata:
   name: login-svc
 spec:
-  type: NodePort
+  type: ClusterIP # Changed from NodePort to ClusterIP, which is fine as Ingress handles external access
   selector:
     app: login
   ports:
     - protocol: TCP
-      nodePort: 30036
       port: 5000
       targetPort: 5000

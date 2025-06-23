@@ -36,11 +36,14 @@ data:
       password VARCHAR(255) NOT NULL,
       email VARCHAR(100) UNIQUE NOT NULL
     );
+    -- Insert a default user for testing purposes
+    INSERT INTO accounts (username, password, email) VALUES ('testuser', 'testpassword', 'test@example.com');
   MYSQL_ROOT_USER: root
   MYSQL_ROOT_HOST: "mysql-service.default.svc.cluster.local"
   MYSQL_ROOT_PORT: "3306"
   MYSQL_ROOT_DB: mydb
   FLASK_APP_PORT: "5000"
+  FLASK_APP: "app.py" # Ensure this line is present and correct
 
 ---
 # MySQL Deployment
@@ -85,15 +88,16 @@ spec:
           name: app-config
 
 ---
-# MySQL Service (Internal communication)
+# MySQL Service
 apiVersion: v1
 kind: Service
 metadata:
   name: mysql-service
 spec:
   selector:
-    app: mysql  # Matches the Deployment label
+    app: mysql
   ports:
-  - port: 3306
-    targetPort: 3306
-  type: ClusterIP  # Internal only
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
