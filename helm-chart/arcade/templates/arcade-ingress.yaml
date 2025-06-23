@@ -1,0 +1,56 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-arcade-ingress
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    # Nginx-specific annotations for rewrite and WebSocket
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/websocket-services: "{{ .Release.Name }}-arcade-service"
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }} # Merges any additional annotations from values.yaml
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    {{- if .host }} # Only create host-specific rule if host is defined
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          {{- if eq .path "/arcade" }} # Only render arcade path for this Ingress
+          - path: {{ .path }}(/|$)(.*) # This path will capture everything after /arcade
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $.Release.Name }}-{{ .serviceName }}
+                port:
+                  number: {{ $.Values.arcadeApp.service.targetPort }} # <-- FIX: Changed to $.Values
+          {{- end }}
+          {{- end }}
+    {{- end }}
+    {{- end }}
+    # Block for IP-based access (without a specific hostname)
+    - http:
+        paths:
+          # Assuming you only want /arcade for IP-based access in this Ingress
+          {{- range .Values.ingress.hosts }}
+          {{- range .paths }}
+          {{- if eq .path "/arcade" }}
+          - path: {{ .path }}(/|$)(.*) # This path will capture everything after /arcade
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ $.Release.Name }}-{{ .serviceName }}
+                port:
+                  number: {{ $.Values.arcadeApp.service.targetPort }} # <-- FIX: Changed to $.Values
+          {{- end }}
+          {{- end }}
+          {{- end }}
+{{- end }}

@@ -1,0 +1,120 @@
+# helm-chart/arcade/templates/mysql.yaml
+
+# Persistent Volume Claim for MySQL data storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-mysql-pvc
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.mysql.pvc.size }}
+
+---
+# ConfigMap for environment variables and initialization script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-mysql-config
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+data:
+  init.sql: |
+    CREATE DATABASE IF NOT EXISTS {{ .Values.mysql.database }};
+    USE {{ .Values.mysql.database }};
+    CREATE TABLE accounts (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      username VARCHAR(50) UNIQUE NOT NULL,
+      password VARCHAR(255) NOT NULL,
+      email VARCHAR(100) UNIQUE NOT NULL
+    );
+    -- Insert a default user for testing purposes
+    INSERT INTO accounts (username, password, email) VALUES ('testuser', 'testpassword', 'test@example.com');
+  MYSQL_ROOT_USER: {{ .Values.mysql.user | quote }}
+  # Refer to the dynamically named MySQL service for internal cluster communication
+  MYSQL_ROOT_HOST: "{{ .Release.Name }}-mysql-service.{{ .Release.Namespace }}.svc.cluster.local"
+  MYSQL_ROOT_PORT: {{ .Values.mysql.port | quote }}
+  MYSQL_ROOT_DB: {{ .Values.mysql.database | quote }}
+  FLASK_APP_PORT: {{ .Values.loginApp.service.port | quote }}
+  FLASK_APP: "app.py" # Static value
+
+---
+# MySQL Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-mysql
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }} # Selector should match pod labels
+      app.kubernetes.io/component: mysql # Add a component label for fine-grained selection
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: "{{ .Values.image.mysql.repository }}:{{ .Values.image.mysql.tag }}"
+        imagePullPolicy: {{ .Values.image.mysql.pullPolicy }}
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Release.Name }}-mysql-pass # References the Secret defined in secret.yaml
+              key: password
+        - name: MYSQL_DATABASE
+          value: {{ .Values.mysql.database | quote }}
+        ports:
+        - containerPort: {{ .Values.mysql.port }}
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+        - name: mysql-initdb
+          mountPath: /docker-entrypoint-initdb.d
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}-mysql-pvc
+      - name: mysql-initdb
+        configMap:
+          name: {{ .Release.Name }}-mysql-config # References the ConfigMap defined above
+
+---
+# MySQL Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-mysql-service
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: mysql
+  ports:
+    - protocol: TCP
+      port: {{ .Values.mysql.port }}
+      targetPort: {{ .Values.mysql.port }}
+  type: {{ .Values.mysql.service.type | default "ClusterIP" }} # Allow service type to be configurable

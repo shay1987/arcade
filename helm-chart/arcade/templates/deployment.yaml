@@ -1,0 +1,65 @@
+# helm-chart/arcade/templates/arcade-deployment.yaml
+# (You might want to rename the generic deployment.yaml to arcade-deployment.yaml
+# for clarity if you still have a single deployment.yaml)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-arcade-app # Templated name
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: arcade # Component label
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: arcade # Match component label
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: arcade # Set component label on pod
+    spec:
+      containers:
+        - name: arcade
+          image: "{{ .Values.image.arcade.repository }}:{{ .Values.image.arcade.tag }}"
+          imagePullPolicy: {{ .Values.image.arcade.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.arcadeApp.service.targetPort }} # Use targetPort from values
+          # Explicitly set command and args for ttyd to ensure interactive shell
+          # 'command' corresponds to Docker ENTRYPOINT (ttyd in this case)
+          command:
+            - "ttyd"
+          args:
+            - "-p"
+            - "{{ .Values.arcadeApp.service.targetPort }}"
+            - "bash"
+            - "-c"
+            - "TERM=xterm bash ./run.sh"
+
+---
+# helm-chart/arcade/templates/arcade-service.yaml
+# (You might want to rename the generic service.yaml to arcade-service.yaml
+# for clarity if you still have a single service.yaml)
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-arcade-service # Templated name
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: arcade # Component label
+spec:
+  type: {{ .Values.arcadeApp.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: arcade # Match component label
+  ports:
+    - protocol: TCP
+      port: {{ .Values.arcadeApp.service.targetPort }}
+      targetPort: {{ .Values.arcadeApp.service.targetPort }}

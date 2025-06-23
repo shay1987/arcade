@@ -1,0 +1,25 @@
+# helm-chart/arcade/Chart.yaml
+apiVersion: v2
+name: arcade
+description: A Helm chart for deploying the Arcade game suite with Flask login and MySQL.
+type: application # This chart deploys an application
+version: 0.1.0 # Initial chart version
+appVersion: "1.0" # Version of the application it deploys
+
+# Keywords for searching
+keywords:
+  - arcade
+  - flask
+  - mysql
+  - game
+  - ci/cd
+  - minikube
+
+# Maintainers (optional)
+maintainers:
+  - name: YourName # Replace with your name or team
+    email: your.email@example.com # Replace with your email
+
+# Sources (optional - links to source code repositories)
+sources:
+  - https://github.com/shay1987/Arcade # Assuming this is your project's main repository

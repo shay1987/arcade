@@ -1,0 +1,73 @@
+# helm-chart/arcade/values.yaml
+# Default values for arcade Helm chart.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  login:
+    repository: shay1987/login
+    tag: latest
+    pullPolicy: Always
+  arcade:
+    repository: shay1987/arcade
+    tag: latest
+    pullPolicy: Always
+  mysql:
+    repository: mysql
+    tag: latest
+    pullPolicy: IfNotPresent # MySQL data is persistent, usually pullIfNotPresent
+
+mysql:
+  rootPassword: admin # WARNING: In production, use a more secure method for secrets!
+  database: mydb
+  user: root # MySQL root username for ConfigMap
+  port: 3306
+  pvc:
+    size: 1Gi # Persistent Volume Claim size for MySQL data
+  service:
+    type: ClusterIP # Service type for MySQL
+
+loginApp:
+  service:
+    type: ClusterIP
+    port: 5000
+    targetPort: 5000 # Flask app listens on 5000
+
+arcadeApp:
+  service:
+    type: ClusterIP
+    port: 7681 # Service listens on 7681, directly matching targetPort
+    targetPort: 7681 # ttyd listens on 7681 (actual container port)
+
+ingress:
+  enabled: true
+  className: nginx # Matches your existing setup
+  annotations: {} # This is where you would add specific Nginx annotations if needed
+  hosts:
+    - host: chart-example.local # Default example host, users can override
+      paths:
+        - path: /
+          pathType: Prefix
+          serviceName: login-svc
+          servicePort: 5000
+        - path: /static/
+          pathType: Prefix
+          serviceName: login-svc
+          servicePort: 5000
+        - path: /arcade
+          pathType: ImplementationSpecific # For regex path
+          serviceName: arcade-service # <-- CRITICAL FIX: Changed to match actual Service name
+          servicePort: 5000 # This is the arcade-app service port (as referenced by Ingress)
+
+# Resources (optional)
+resources: {}
+  # We usually recommend not to set limits on resources, hence no default requests and limits.
+  # kind:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

@@ -45,7 +45,7 @@ More games will be available in future releases.
 Follow these steps to run **only the Arcade game** locally using a direct Docker command:
 
 1.  Open a terminal or command prompt and run the following command:
-    ```
+    ```bash
     docker run -p 7681:7681 shay1987/arcade
     ```
 2.  Open your browser and enter 'localhost:7681'
@@ -86,9 +86,9 @@ Follow these steps to run the **complete application stack** (MySQL, Login App, 
     docker-compose down
     ```
 
-## How to Deploy to Kubernetes Cluster (Minikube)
+## How to Deploy to Kubernetes Cluster (using `kubectl apply`)
 
-To deploy this application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster, follow these steps.
+To deploy this application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster using individual YAML files, follow these steps.
 Ensure you have `kubectl` configured to interact with your cluster.
 
 1.  **Enable Ingress Controller (if using Minikube or a similar local setup):**
@@ -141,6 +141,67 @@ Ensure you have `kubectl` configured to interact with your cluster.
 
 7.  **Access the Applications:**
     After all resources are deployed and running, you can access your applications via the Ingress controller's external IP or hostname.
+
+    * **Find Ingress IP/Hostname:**
+        If on Minikube, get the Ingress IP:
+        ```bash
+        minikube ip
+        ```
+        If on a cloud provider, check your Ingress controller's external IP or hostname (e.g., using `kubectl get ingress -A -o wide`).
+
+    * **Access Login:** Open your browser to `http://<YOUR_INGRESS_IP_OR_HOSTNAME>/` (or `http://yourdomain.com/` if you configured a hostname in Ingress).
+    * **Access Arcade:** After a successful login through the Login app, you will be redirected to the Arcade game, which will be accessible at `http://<YOUR_INGRESS_IP_OR_HOSTNAME>/arcade` (or `http://yourdomain.com/arcade`).
+
+## How to Deploy to Kubernetes Cluster with Helm
+
+To deploy the complete application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster using the provided Helm chart, follow these steps.
+
+**Prerequisites:**
+* A running Kubernetes cluster (e.g., Minikube).
+* `kubectl` configured to interact with your cluster.
+* Helm v3+ installed.
+* If using Minikube, ensure the Ingress addon is enabled:
+    ```bash
+    minikube addons enable ingress
+    ```
+
+**Deployment Steps:**
+
+1.  **Navigate to the Helm Chart Directory:**
+    Open your terminal or command prompt and change your current directory to the `helm-chart/arcade` folder where your `Chart.yaml` is located.
+    ```bash
+    cd helm-chart/arcade
+    ```
+
+2.  **Lint the Chart (Optional, but Recommended):**
+    Before deploying, it's good practice to lint your Helm chart to check for syntax errors and best practices:
+    ```bash
+    helm lint .
+    ```
+
+3.  **Install the Chart:**
+    This command will deploy all components (MySQL, Login App, Arcade App, Ingresses) defined in your Helm chart.
+    ```bash
+    helm install my-arcade-release . --wait
+    ```
+    * Replace `my-arcade-release` with a name for your deployment.
+    * The `--wait` flag ensures Helm waits until all resources are in a ready state.
+
+4.  **Upgrade the Chart (for subsequent deployments/changes):**
+    If you make changes to your chart (templates or `values.yaml`), use `helm upgrade` to apply them.
+    ```bash
+    helm upgrade my-arcade-release . --wait
+    ```
+
+5.  **Verify Deployment:**
+    You can check the status of all deployed resources:
+    ```bash
+    kubectl get all -l app.kubernetes.io/instance=my-arcade-release
+    kubectl get ingress -l app.kubernetes.io/instance=my-arcade-release
+    ```
+
+6.  **Access the Applications:**
+    Once all resources are deployed and running, you can access your applications via the Ingress controller's external IP or hostname.
 
     * **Find Ingress IP/Hostname:**
         If on Minikube, get the Ingress IP:

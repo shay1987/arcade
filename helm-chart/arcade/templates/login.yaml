@@ -1,0 +1,81 @@
+# helm-chart/arcade/templates/login.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-login-app
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: login # Added component label
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: login # Match component label
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: login # Set component label on pod
+    spec:
+      containers:
+        - name: login
+          image: "{{ .Values.image.login.repository }}:{{ .Values.image.login.tag }}"
+          imagePullPolicy: {{ .Values.image.login.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.loginApp.service.targetPort }}
+          env:
+          # Flask_App is a static filename
+          - name: FLASK_APP
+            value: "app.py"
+          # MySQL connection details from the ConfigMap, which is also templated
+          - name: MYSQL_ROOT_USER
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-mysql-config # Referencing the templated ConfigMap name
+                key: MYSQL_ROOT_USER
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-mysql-pass # Referencing the templated Secret name
+                key: password
+          - name: MYSQL_ROOT_HOST
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-mysql-config # Referencing the templated ConfigMap name
+                key: MYSQL_ROOT_HOST
+          - name: MYSQL_ROOT_PORT
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-mysql-config # Referencing the templated ConfigMap name
+                key: MYSQL_ROOT_PORT
+          - name: MYSQL_ROOT_DB
+            valueFrom:
+              configMapKeyRef:
+                name: {{ .Release.Name }}-mysql-config # Referencing the templated ConfigMap name
+                key: MYSQL_ROOT_DB
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-login-svc
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/component: login # Added component label
+spec:
+  type: {{ .Values.loginApp.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: login # Match component label
+  ports:
+    - protocol: TCP
+      port: {{ .Values.loginApp.service.port }}
+      targetPort: {{ .Values.loginApp.service.targetPort }}

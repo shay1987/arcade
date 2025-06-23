@@ -1,0 +1,35 @@
+{{- if .Values.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-login-static-ingress
+  labels:
+    app.kubernetes.io/name: {{ include "arcade.name" . }}
+    helm.sh/chart: {{ include "arcade.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    # Rule for the root path and static files, using the templated login service name
+    - http:
+        paths:
+          - path: /static/
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-login-svc # Reference templated login service
+                port:
+                  number: {{ .Values.loginApp.service.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-login-svc # Reference templated login service
+                port:
+                  number: {{ .Values.loginApp.service.port }}
+{{- end }}
