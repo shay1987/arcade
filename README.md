@@ -2,7 +2,7 @@
 
 ![Arcade Logo](logo.png)
 
-Arcade is a repository that contains a collection of classic TUI arcade games implemented using bash script and ttyd.  
+Arcade is a repository that contains a collection of classic TUI arcade games implemented using bash script and ttyd.
 These games are recreated to provide a nostalgic gaming experience for users, whether you're a seasoned gamer or just looking for some fun, `Arcade` has something for everyone.
 
 ## Project Overview
@@ -13,7 +13,12 @@ The project utilizes the following components:
 
 ### Docker
 
-Docker is a key component in this project, providing containerization for the game. The game is encapsulated within a Docker container, ensuring portability, consistency, and easy deployment across different environments.
+Docker is a key component in this project, providing containerization for the game.  
+The game is encapsulated within a Docker container, ensuring portability, consistency, and easy deployment across different environments.
+
+### Docker Compose
+Docker Compose is utilized to define and run multi-container Docker applications.  
+It allows for the configuration of all application's services (like the MySQL database, Login App, Arcade App, and Nginx proxy) in a single `docker-compose.yaml` file, simplifying their orchestration and local development setup.
 
 ### Minikube
 
@@ -37,7 +42,7 @@ More games will be available in future releases.
 
 ## How to Run locally
 
-Follow these steps to run the app locally:
+Follow these steps to run **only the Arcade game** locally using a direct Docker command:
 
 1.  Open a terminal or command prompt and run the following command:
     ```
@@ -46,9 +51,44 @@ Follow these steps to run the app locally:
 2.  Open your browser and enter 'localhost:7681'
 3.  Enjoy playing the games!
 
+## How to Run Locally with Docker Compose
+
+Follow these steps to run the **complete application stack** (MySQL, Login App, Arcade App, Nginx Proxy) locally using Docker Compose:
+
+1.  **Ensure Docker and Docker Compose are Installed:**
+    Make sure you have Docker and Docker Compose installed on your system. If not, you can use the `install_applications.sh` script provided in the root of this repository.
+
+2.  **Navigate to the Docker Compose Directory:**
+    Open your terminal or command prompt and change your current directory to the `docker-compose` folder, as your `docker-compose.yaml` is located there:
+    ```bash
+    cd docker-compose
+    ```
+
+3.  **Start the Services:**
+    Run the following command to build the necessary images (if they don't exist or have been updated) and start all services in detached mode (`-d`):
+    ```bash
+    docker-compose up --build -d
+    ```
+    * **Troubleshooting Tip:** If you encounter any issues with existing containers (e.g., "Conflict. The container name is already in use"), you can clean up thoroughly by running:
+        ```bash
+        docker-compose down --remove-orphans
+        docker-compose up --build -d
+        ```
+
+4.  **Access the Applications:**
+    Once all services are up and running (this might take a minute, especially for MySQL to become healthy):
+    * **Login Application:** Open your web browser and go to `http://localhost/`
+    * **Arcade Games:** After (or without, depending on your `login-app`'s configuration for direct access) logging in via the Login App, you can access the arcade games by navigating to `http://localhost/arcade/` (or `http://localhost/arcade`).
+
+5.  **Stop the Services:**
+    When you're done, you can stop and remove all services defined in `docker-compose.yaml` by running the following command from within the `docker-compose` directory:
+    ```bash
+    docker-compose down
+    ```
+
 ## How to Deploy to Kubernetes Cluster (Minikube)
 
-To deploy this application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster, follow these steps.  
+To deploy this application suite (MySQL, Login App, Arcade Game) to a Kubernetes cluster, follow these steps.
 Ensure you have `kubectl` configured to interact with your cluster.
 
 1.  **Enable Ingress Controller (if using Minikube or a similar local setup):**

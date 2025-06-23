@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  mysql-db:
+    image: mysql:latest
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: admin # Consistent with your setup
+      MYSQL_DATABASE: mydb
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # If you have a custom init.sql for MySQL, you might also have:
+      # - ./path/to/your/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 10s
+      retries: 5
+
+  login-app:
+    image: shay1987/login:latest
+    container_name: login-web
+    environment:
+      FLASK_APP: app.py
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: admin # Consistent with mysql-db
+      MYSQL_ROOT_HOST: mysql-db  # Connects to the mysql-db service within Docker's network
+      MYSQL_ROOT_PORT: 3306
+      MYSQL_ROOT_DB: mydb
+    ports:
+      - "5000:5000"
+    depends_on:
+      mysql-db:
+        condition: service_healthy
+
+  arcade-app:
+    image: shay1987/arcade:latest
+    container_name: arcade-game
+    entrypoint: ["ttyd"]
+    command: ["-p", "7681", "bash", "-c", "TERM=xterm bash ./run.sh"]
+    # IMPORTANT: The 'ports' mapping has been REMOVED here.
+    # This makes arcade-app accessible ONLY via the Nginx proxy on the internal Docker network.
+    depends_on:
+      login-app:
+        condition: service_started
+
+  nginx-proxy:
+    image: nginx:latest # Using the official Nginx image
+    container_name: nginx-reverse-proxy
+    ports:
+      - "80:80" # Exposes Nginx to the host on port 80
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro # Mounts your custom Nginx config
+      # Ensure mime.types exists in your ./nginx directory if it's not default in the image
+      # - ./nginx/mime.types:/etc/nginx/mime.types:ro
+    depends_on:
+      login-app:
+        condition: service_started
+      arcade-app:
+        condition: service_started
+
+volumes:
+  mysql_data:
