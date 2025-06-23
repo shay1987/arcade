@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: login-static-ingress # A new name for this specific Ingress
+  name: login-static-ingress
   namespace: default
   # NO rewrite-target annotation here for this specific Ingress
   # This means the original path will be passed to the backend
@@ -17,3 +17,10 @@ spec:
             name: login-svc # Point to your login service
             port:
               number: 5000 # The port your login app listens on
+      - path: /          # <-- ADD THIS NEW RULE FOR THE ROOT PATH
+        pathType: Prefix # Use Prefix to match both "/" and "/anything" that isn't caught by /static/
+        backend:
+          service:
+            name: login-svc
+            port:
+              number: 5000
