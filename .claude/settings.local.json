@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(py|js|ts|tsx|jsx|go|java|rb|sh|sql\\)$\")",
+      "Bash(minikube addons *)",
+      "Bash(kubectl get *)",
+      "Bash(kubectl describe *)",
+      "Bash(kubectl logs *)",
+      "Bash(minikube ip *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://192.168.49.2/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://192.168.49.2/arcade/)",
+      "Bash(curl -s http://192.168.49.2/)",
+      "Bash(curl -s http://192.168.49.2/arcade/)"
+    ]
+  }
+}

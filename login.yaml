@@ -17,42 +17,54 @@ spec:
       containers:
         - name: login
           image: shay1987/login:latest
-          imagePullPolicy: Always # Ensure this is 'Always' as previously discussed
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
           env:
-          - name: FLASK_APP
+          - name: MYSQL_USER
             valueFrom:
               configMapKeyRef:
                 name: app-config
-                key: FLASK_APP
-          - name: MYSQL_ROOT_USER
-            valueFrom:
-              configMapKeyRef:
-                name: app-config
-                key: MYSQL_ROOT_USER
-          # --- CRITICAL FIX HERE ---
-          # Source MYSQL_ROOT_PASSWORD from the Secret 'mysql-pass'
-          - name: MYSQL_ROOT_PASSWORD
+                key: MYSQL_USER
+          - name: MYSQL_PASSWORD
             valueFrom:
               secretKeyRef:
                 name: mysql-pass
-                key: password # 'password' is the key within your mysql-pass Secret
-          - name: MYSQL_ROOT_HOST
+                key: password
+          - name: MYSQL_HOST
             valueFrom:
               configMapKeyRef:
                 name: app-config
-                key: MYSQL_ROOT_HOST
-          - name: MYSQL_ROOT_PORT
+                key: MYSQL_HOST
+          - name: MYSQL_PORT
             valueFrom:
               configMapKeyRef:
                 name: app-config
-                key: MYSQL_ROOT_PORT
-          - name: MYSQL_ROOT_DB
+                key: MYSQL_PORT
+          - name: MYSQL_DATABASE
             valueFrom:
               configMapKeyRef:
                 name: app-config
-                key: MYSQL_ROOT_DB
+                key: MYSQL_DATABASE
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 
 ---
 
@@ -61,7 +73,7 @@ kind: Service
 metadata:
   name: login-svc
 spec:
-  type: ClusterIP # Changed from NodePort to ClusterIP, which is fine as Ingress handles external access
+  type: ClusterIP
   selector:
     app: login
   ports:

@@ -1,14 +1,3 @@
-# Secret for MySQL password (Base64-encoded "admin")
-apiVersion: v1
-kind: Secret
-metadata:
-  name: mysql-pass
-type: Opaque
-data:
-  password: YWRtaW4=  # "admin" in base64
-
----
-# Persistent Volume Claim for MySQL data storage
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -21,7 +10,7 @@ spec:
       storage: 1Gi
 
 ---
-# ConfigMap for environment variables and initialization script
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -30,23 +19,25 @@ data:
   init.sql: |
     CREATE DATABASE IF NOT EXISTS mydb;
     USE mydb;
-    CREATE TABLE accounts (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      email VARCHAR(100) UNIQUE NOT NULL
+    CREATE TABLE IF NOT EXISTS accounts (
+        username          VARCHAR(50)  PRIMARY KEY,
+        full_name         VARCHAR(100) NOT NULL,
+        password          VARCHAR(100) NOT NULL,
+        security_question VARCHAR(200) NOT NULL,
+        security_answer   VARCHAR(100) NOT NULL,
+        last_login        DATETIME     NULL
     );
-    -- Insert a default user for testing purposes
-    INSERT INTO accounts (username, password, email) VALUES ('testuser', 'testpassword', 'test@example.com');
-  MYSQL_ROOT_USER: root
-  MYSQL_ROOT_HOST: "mysql-service.default.svc.cluster.local"
-  MYSQL_ROOT_PORT: "3306"
-  MYSQL_ROOT_DB: mydb
-  FLASK_APP_PORT: "5000"
-  FLASK_APP: "app.py" # Ensure this line is present and correct
+    CREATE TABLE IF NOT EXISTS admins (
+        username VARCHAR(50)  PRIMARY KEY,
+        password VARCHAR(100) NOT NULL
+    );
+  MYSQL_USER: root
+  MYSQL_HOST: "mysql-service.default.svc.cluster.local"
+  MYSQL_PORT: "3306"
+  MYSQL_DATABASE: mydb
 
 ---
-# MySQL Deployment
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -63,7 +54,7 @@ spec:
     spec:
       containers:
       - name: mysql
-        image: mysql:latest
+        image: mysql:8.0
         env:
         - name: MYSQL_ROOT_PASSWORD
           valueFrom:
@@ -71,9 +62,28 @@ spec:
               name: mysql-pass
               key: password
         - name: MYSQL_DATABASE
-          value: "mydb"
+          value: mydb
         ports:
         - containerPort: 3306
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: 500m
+            memory: 1Gi
+        livenessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "localhost"]
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "localhost"]
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
         volumeMounts:
         - name: mysql-storage
           mountPath: /var/lib/mysql
@@ -86,9 +96,12 @@ spec:
       - name: mysql-initdb
         configMap:
           name: app-config
+          items:
+          - key: init.sql
+            path: init.sql
 
 ---
-# MySQL Service
+
 apiVersion: v1
 kind: Service
 metadata:

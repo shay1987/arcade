@@ -15,19 +15,40 @@ spec:
       containers:
         - name: arcade
           image: shay1987/arcade:latest
-          imagePullPolicy: Always
+          imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 7681 # Explicitly declare container port for clarity
+            - containerPort: 7681
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /arcade/
+              port: 7681
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /arcade/
+              port: 7681
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
-  name: arcade-service # This is the service name referenced in login.py
+  name: arcade-svc
 spec:
   selector:
     app: arcade
   ports:
     - protocol: TCP
-      port: 5000       # Service listens on 5000 (as login.py expects)
-      targetPort: 7681 # <--- CORRECTED: Target the actual container port
+      port: 7681
+      targetPort: 7681
   type: ClusterIP

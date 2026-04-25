@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: arcade-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+spec:
+  ingressClassName: nginx
+  rules:
+  - http:
+      paths:
+      - path: /arcade/
+        pathType: Prefix
+        backend:
+          service:
+            name: arcade-svc
+            port:
+              number: 7681
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: login-svc
+            port:
+              number: 5000
