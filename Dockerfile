@@ -12,4 +12,4 @@ ENV PATH="${PATH}:/usr/games"
 
 EXPOSE 7681
 
-ENTRYPOINT ["ttyd", "--base-path", "/arcade/", "bash", "./run.sh"]
+ENTRYPOINT ["ttyd", "--base-path", "/arcade/", "-t", "fontSize=18", "bash", "./run.sh"]
