@@ -16,8 +16,6 @@ services:
 
   login:
     build: ./login
-    ports:
-      - "5000:5000"
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -25,7 +23,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: mydb
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
-      ARCADE_URL: ${ARCADE_URL:-http://localhost:7681}
+      ARCADE_URL: ${ARCADE_URL:-http://localhost/arcade/}
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
     depends_on:
@@ -34,8 +32,16 @@ services:
 
   arcade:
     build: .
+
+  nginx:
+    image: nginx:alpine
     ports:
-      - "7681:7681"
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - login
+      - arcade
 
 volumes:
   mysql_data:

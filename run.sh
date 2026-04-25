@@ -2,10 +2,12 @@
 
 green='\033[0;32m'
 red='\033[0;31m'
-clear='\033[0m'
+reset='\033[0m'
 
+while true; do
 
-echo -e "${red}
+    clear
+    echo -e "${red}
 ##############################################################################
 # Please choose a game you like to play                                      #
 #                               ├── Bastet (1)                               #
@@ -13,35 +15,23 @@ echo -e "${red}
 #                               ├── Nsnake (3)                               #
 #                               ├── Greed (4)                                #
 #                               └── Pacman4console (5)                       #
+#                               └── Quit (q)                                 #
 #                                                                            #
 #                           @@@ Use ctrl+C to exit a game @@@                #
 ##############################################################################
-${clear}"
-echo " "
+${reset}"
 
-echo -e "${green}Type the number of the game you wish${clear}"
-read user_input
-if [ $user_input == "1" ];
-then
-    cd /usr/games
-    ./bastet
-elif [ $user_input == "2" ];
-then
-    cd /usr/games
-    ./ninvaders
-elif [ $user_input == "3" ];
-then
-    cd /usr/games
-    ./nsnake
-elif [ $user_input == "4" ];
-then
-    cd /usr/games
-    ./greed
-elif [ $user_input == "5" ];
-then
-    cd /usr/games
-    ./pacman4console
-else
-    echo -e "${red}Wrong! exiting...${clear}"
-    exit
-fi
+    echo -e "${green}Type the number of the game you wish${reset}"
+    read user_input
+
+    case "$user_input" in
+        1) cd /usr/games && ./bastet ;;
+        2) cd /usr/games && ./ninvaders ;;
+        3) cd /usr/games && ./nsnake ;;
+        4) cd /usr/games && ./greed ;;
+        5) cd /usr/games && ./pacman4console ;;
+        q|Q) echo -e "${red}Goodbye!${reset}"; exit 0 ;;
+        *) echo -e "${red}Invalid choice, please try again.${reset}" ;;
+    esac
+
+done
