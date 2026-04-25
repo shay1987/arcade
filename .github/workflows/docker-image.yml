@@ -4,53 +4,58 @@ on:
   push:
     branches:
       - dev
-      
-  workflow_dispatch:
-    branches:
       - master
+  workflow_dispatch:
 
 env:
-  DOCKER_IMAGE: shay1987/arcade
+  ARCADE_IMAGE: shay1987/arcade
+  LOGIN_IMAGE: shay1987/login
 
 jobs:
-  push_to_registry:
-    name: Push Docker image to Docker Hub
+  build-and-push:
+    name: Build and push Docker images
     runs-on: ubuntu-latest
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Retrieve existing Docker tags
-        id: get_existing_tags
+      - name: Compute version tag
+        id: version
         run: |
-          existing_tags=$(curl -s "https://hub.docker.com/v2/repositories/${DOCKER_IMAGE}/tags" | jq -r '.results|.[]|.name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')
-          if [[ -n $existing_tags ]]; then
-            latest_version=$(echo "$existing_tags" | sort -V | tail -n1)
-            IFS=. read -r major minor patch <<< "$latest_version"
-            patch=$((patch + 1))
-            new_version="${major}.${minor}.${patch}"
+          existing=$(curl -s "https://hub.docker.com/v2/repositories/${ARCADE_IMAGE}/tags" \
+            | jq -r '.results[].name' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' || true)
+          if [[ -n "$existing" ]]; then
+            latest=$(echo "$existing" | sort -V | tail -n1)
+            IFS=. read -r major minor patch <<< "$latest"
+            echo "version=${major}.${minor}.$((patch + 1))" >> "$GITHUB_OUTPUT"
           else
-            new_version="0.0.1"
+            echo "version=0.0.1" >> "$GITHUB_OUTPUT"
           fi
-          echo "::set-output name=new_version::$new_version"
-      - name: Set Docker image tag
-        id: set_image_tag
+
+      - name: Build and push arcade image
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
-            new_version="${{ steps.get_existing_tags.outputs.new_version }}"
-            echo "::set-output name=image_tag::${DOCKER_IMAGE}:latest"
-            echo "::set-output name=latest_tag::${DOCKER_IMAGE}:latest"
+            docker build -t "${ARCADE_IMAGE}:latest" -t "${ARCADE_IMAGE}:${{ steps.version.outputs.version }}" .
+            docker push "${ARCADE_IMAGE}:latest"
+            docker push "${ARCADE_IMAGE}:${{ steps.version.outputs.version }}"
           else
-            new_version="${{ steps.get_existing_tags.outputs.new_version }}"
-            echo "::set-output name=image_tag::${DOCKER_IMAGE}:${new_version}"
+            docker build -t "${ARCADE_IMAGE}:${{ steps.version.outputs.version }}" .
+            docker push "${ARCADE_IMAGE}:${{ steps.version.outputs.version }}"
           fi
-      - name: Build and push Docker image
+
+      - name: Build and push login image
         run: |
-          docker build -t "${{ steps.set_image_tag.outputs.image_tag }}" .
-          docker push "${{ steps.set_image_tag.outputs.image_tag }}"
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            docker build -t "${LOGIN_IMAGE}:latest" -t "${LOGIN_IMAGE}:${{ steps.version.outputs.version }}" ./login
+            docker push "${LOGIN_IMAGE}:latest"
+            docker push "${LOGIN_IMAGE}:${{ steps.version.outputs.version }}"
+          else
+            docker build -t "${LOGIN_IMAGE}:${{ steps.version.outputs.version }}" ./login
+            docker push "${LOGIN_IMAGE}:${{ steps.version.outputs.version }}"
+          fi
