@@ -23,7 +23,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
       MYSQL_DATABASE: mydb
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
-      ARCADE_URL: ${ARCADE_URL:-http://localhost/arcade/}
+      ARCADE_URL: http://localhost:${NGINX_PORT:-80}/arcade/
       ADMIN_USER: ${ADMIN_USER:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
     depends_on:
@@ -36,7 +36,7 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "${NGINX_PORT:-80}:80"
     volumes:
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
