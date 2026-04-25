@@ -1,72 +1,66 @@
-# helm-chart/arcade/values.yaml
-# Default values for arcade Helm chart.
-# This is a YAML-formatted file.
-# Declare variables to be passed into your templates.
-
 replicaCount: 1
 
 image:
   login:
     repository: shay1987/login
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   arcade:
     repository: shay1987/arcade
     tag: latest
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
   mysql:
     repository: mysql
-    tag: latest
-    pullPolicy: IfNotPresent # MySQL data is persistent, usually pullIfNotPresent
+    tag: "8.0"
+    pullPolicy: IfNotPresent
 
 mysql:
-  rootPassword: admin # WARNING: In production, use a more secure method for secrets!
+  rootPassword: admin
   database: mydb
-  user: root # MySQL root username for ConfigMap
+  user: root
   port: 3306
   pvc:
-    size: 1Gi # Persistent Volume Claim size for MySQL data
+    size: 1Gi
   service:
-    type: ClusterIP # Service type for MySQL
+    type: ClusterIP
 
 loginApp:
+  secretKey: "change-this-in-production"
   service:
     type: ClusterIP
     port: 5000
-    targetPort: 5000 # Flask app listens on 5000
 
 arcadeApp:
   service:
     type: ClusterIP
-    port: 7681 # Service listens on 7681, directly matching targetPort
-    targetPort: 7681 # ttyd listens on 7681 (actual container port)
+    port: 7681
 
 ingress:
   enabled: true
-  className: nginx # Matches your existing setup
-  annotations: {} # This is where you would add specific Nginx annotations if needed
-  hosts:
-    - host: chart-example.local # Default example host, users can override
-      paths:
-        - path: /
-          pathType: Prefix
-          serviceName: login-svc
-          servicePort: 5000
-        - path: /static/
-          pathType: Prefix
-          serviceName: login-svc
-          servicePort: 5000
-        - path: /arcade
-          pathType: ImplementationSpecific # For regex path
-          serviceName: arcade-service # <-- CRITICAL FIX: Changed to match actual Service name
-          servicePort: 5000 # This is the arcade-app service port (as referenced by Ingress)
+  className: nginx
 
-# Resources (optional)
-resources: {}
-  # We usually recommend not to set limits on resources, hence no default requests and limits.
-  # kind:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  login:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  arcade:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 256Mi
+  mysql:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
 
 nodeSelector: {}
 tolerations: []
