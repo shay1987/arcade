@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Console — Shay's Arcade</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+    <style>
+        .console { max-width: 750px; }
+
+        .stats {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            flex: 1;
+            background: #080810;
+            border: 1px solid rgba(255, 215, 0, 0.25);
+            border-radius: 4px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-box .stat-value {
+            font-size: 2rem;
+            color: #ffd700;
+            font-weight: bold;
+        }
+
+        .stat-box .stat-label {
+            font-size: 0.62rem;
+            letter-spacing: 2px;
+            color: #00e676;
+            margin-top: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        thead tr { border-bottom: 1px solid rgba(255, 215, 0, 0.3); }
+
+        th {
+            text-align: left;
+            font-size: 0.62rem;
+            letter-spacing: 2px;
+            color: #00e676;
+            padding: 0 8px 10px 0;
+        }
+
+        td {
+            padding: 10px 8px 10px 0;
+            border-bottom: 1px solid #1a1a2a;
+            color: #c8c8d0;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .never { color: #444; font-style: italic; }
+
+        .divider {
+            border: none;
+            border-top: 1px solid #1a1a2a;
+            margin: 28px 0;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            letter-spacing: 3px;
+            color: #ffd700;
+            margin-bottom: 18px;
+        }
+
+        .inline-fields {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .inline-fields .field { flex: 1; min-width: 160px; }
+
+        .inline-fields button { align-self: flex-end; width: auto; padding: 9px 20px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <div class="container console">
+        <div class="title">
+            <h1>SHAY'S ARCADE</h1>
+            <p>ADMIN CONSOLE</p>
+        </div>
+        <div class="card">
+            <h2>USER OVERVIEW</h2>
+
+            {% if msg %}
+            <div class="msg {{ 'success' if success else 'error' }}">{{ msg }}</div>
+            {% endif %}
+
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-value">{{ total }}</div>
+                    <div class="stat-label">REGISTERED USERS</div>
+                </div>
+            </div>
+
+            {% if users %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>USERNAME</th>
+                        <th>FULL NAME</th>
+                        <th>LAST LOGIN</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td>{{ user.username }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>
+                            {% if user.last_login %}
+                                {{ user.last_login.strftime('%Y-%m-%d %H:%M') }}
+                            {% else %}
+                                <span class="never">Never</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="hint">No users registered yet.</p>
+            {% endif %}
+
+            <hr class="divider">
+
+            <p class="section-title">CHANGE ADMIN PASSWORD</p>
+            <form method="post" action="/admin/change-password">
+                <div class="inline-fields">
+                    <div class="field">
+                        <label>CURRENT PASSWORD</label>
+                        <input type="password" name="current_password" required>
+                    </div>
+                    <div class="field">
+                        <label>NEW PASSWORD</label>
+                        <input type="password" name="new_password" required>
+                    </div>
+                    <div class="field">
+                        <label>CONFIRM NEW</label>
+                        <input type="password" name="confirm_password" required>
+                    </div>
+                    <button type="submit">UPDATE</button>
+                </div>
+            </form>
+
+            <div class="links" style="margin-top: 28px;">
+                <a href="/admin/logout">Logout</a>
+                <a href="/">Main Page</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

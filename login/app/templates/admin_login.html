@@ -3,45 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register — Shay's Arcade</title>
+    <title>Admin — Shay's Arcade</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
     <div class="container">
         <div class="title">
             <h1>SHAY'S ARCADE</h1>
+            <p>ADMIN ACCESS</p>
         </div>
         <div class="card">
-            <h2>CREATE ACCOUNT</h2>
+            <h2>ADMIN LOGIN</h2>
             {% if msg %}
             <div class="msg error">{{ msg }}</div>
             {% endif %}
-            <form method="post" action="/register">
+            <form method="post" action="/admin/login">
                 <div class="field">
                     <label>USERNAME</label>
                     <input type="text" name="username" required autofocus>
                 </div>
                 <div class="field">
-                    <label>FULL NAME</label>
-                    <input type="text" name="full_name" required>
-                </div>
-                <div class="field">
                     <label>PASSWORD</label>
                     <input type="password" name="password" required>
                 </div>
-                <div class="field">
-                    <label>SECURITY QUESTION</label>
-                    <select name="security_question" required>
-                        {% for q in questions %}
-                        <option value="{{ q }}">{{ q }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="field">
-                    <label>YOUR ANSWER</label>
-                    <input type="text" name="security_answer" required>
-                </div>
-                <button type="submit">CREATE ACCOUNT</button>
+                <button type="submit">ENTER</button>
             </form>
             <div class="links">
                 <a href="/">Back to Login</a>
