@@ -9,7 +9,7 @@ import bcrypt
 import mysql.connector
 import os
 
-ARCADE_URL = os.getenv("ARCADE_URL",       "http://localhost:7681")
+ARCADE_URL = os.getenv("ARCADE_URL",       "/arcade/")
 ADMIN_USER = os.getenv("ADMIN_USER",        "admin")
 ADMIN_PASS = os.getenv("ADMIN_PASSWORD",    "admin")
 
