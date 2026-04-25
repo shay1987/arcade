@@ -11,8 +11,11 @@ menu=(
     "#                               ├── Ninvaders (2)                            #"
     "#                               ├── Nsnake (3)                               #"
     "#                               ├── Greed (4)                                #"
-    "#                               └── Pacman4console (5)                       #"
-    "#                               └── Quit (q)                                 #"
+    "#                               ├── Pacman4console (5)                       #"
+    "#                               ├── Nethack (6)                              #"
+    "#                               ├── Moon-buggy (7)                           #"
+    "#                               ├── Nudoku (8)                               #"
+    "#                               └── Tennis (9)                               #"
     "#                                                                            #"
     "#                           @@@ Use ctrl+C to exit a game @@@                #"
     "##############################################################################"
@@ -47,6 +50,10 @@ while true; do
         3) cd /usr/games && ./nsnake ;;
         4) cd /usr/games && ./greed ;;
         5) cd /usr/games && ./pacman4console ;;
+        6) nethack ;;
+        7) moon-buggy ;;
+        8) nudoku ;;
+        9) tennis ;;
         q|Q)
             clear
             printf '%b%s%b\n' "$red" "Goodbye!" "$reset"
