@@ -15,7 +15,7 @@ services:
       start_period: 30s
 
   login:
-    build: ./login
+    image: shay1987/login:latest
     environment:
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
@@ -31,7 +31,7 @@ services:
         condition: service_healthy
 
   arcade:
-    build: .
+    image: shay1987/arcade:latest
 
   nginx:
     image: nginx:alpine
